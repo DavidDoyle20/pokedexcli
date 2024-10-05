@@ -1,10 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
 )
@@ -14,9 +11,6 @@ type cliCommand struct {
 	description string
 	callback    func() error
 }
-
-var apiURL = "https://pokeapi.co/api/v2/"
-var currentLocation = "location/"
 
 func commandHelp() error {
 
@@ -36,61 +30,42 @@ func commandExit() error {
 }
 
 func commandMap() error {
-	locations, err := getLocations(currentLocation)
+	resp, err := getResponse((nextLocation))
 	if err != nil {
 		return err
 	}
-	for _, l := range locations {
+	for _, l := range resp.Results {
 		fmt.Println(l.Name)
 	}
+
+	currentLocation = nextLocation
+	nextLocation = resp.Next
+	previousLocation = resp.Previous
+
 	return nil
 }
 
-func getLocation
-
-func getLocations(direction string) ([]Location, error) {
-	fullURL := apiURL + currentLocation
-
-	if direction == "previous" {
-
-	}
-
-	// Create a new get request at the location endpoint
-	res, err := http.Get(fullURL)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		fmt.Println(res.Status)
-		return nil, fmt.Errorf(res.Status)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-	var response Response
-	if err = json.Unmarshal(body, &response); err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	//fmt.Println(response)
-	return response.Results, nil
-}
-
 func commandMapb() error {
-	locations, err := getLocations()
+	if previousLocation == "" {
+		nextLocation = currentLocation
+		err := fmt.Errorf("No previous found")
+		fmt.Println(err)
+		return err
+	}
+
+	resp, err := getResponse((previousLocation))
 	if err != nil {
 		return err
 	}
-	for _, l := range locations {
+
+	for _, l := range resp.Results {
 		fmt.Println(l.Name)
 	}
+
+	currentLocation = previousLocation
+	nextLocation = resp.Next
+	previousLocation = resp.Previous
+
 	return nil
 }
 
