@@ -3,51 +3,19 @@ package location
 import (
 	"encoding/json"
 	"fmt"
-	"internal/pokecache"
-	"io"
-	"net/http"
-	"time"
+	"internal/response"
 )
 
 var apiURL = "https://pokeapi.co/api/v2/"
 var currentLocation = apiURL + "location/"
 var previousLocation = ""
 var nextLocation = currentLocation
-var cache = pokecache.NewCache(time.Second * 20)
 
 type LocationResponse struct {
 	Count    int        `json:"count"`
 	Next     string     `json:"next"`
 	Previous string     `json:"previous"`
 	Results  []Location `json:"results"`
-}
-
-func GetResponse(url string) ([]byte, error) {
-	body, OK := cache.Get(url)
-
-	if !OK {
-		res, err := http.Get(url)
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-		defer res.Body.Close()
-
-		if res.StatusCode != http.StatusOK {
-			fmt.Println(res.Status)
-			return nil, fmt.Errorf(res.Status)
-		}
-
-		body, err = io.ReadAll(res.Body)
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-		cache.Add(url, body)
-		//fmt.Println("Added to cache")
-	}
-
-	return body, nil
 }
 
 func unmarshalLocation(data []byte) (LocationResponse, error) {
@@ -60,12 +28,17 @@ func unmarshalLocation(data []byte) (LocationResponse, error) {
 }
 
 type Location struct {
+	Name  string `json:"name"`
+	Url   string `json:"url"`
+	Areas []Area `json:"areas"`
+}
+type Area struct {
 	Name string `json:"name"`
 	Url  string `json:"url"`
 }
 
 func GetLocations() ([]Location, error) {
-	resp, err := GetResponse(currentLocation)
+	resp, err := response.GetResponse(currentLocation)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -94,7 +67,7 @@ func GetPreviousLocations() ([]Location, error) {
 		return nil, err
 	}
 
-	resp, err := GetResponse(prev)
+	resp, err := response.GetResponse(prev)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -110,4 +83,31 @@ func GetPreviousLocations() ([]Location, error) {
 	previousLocation = data.Previous
 
 	return data.Results, nil
+}
+
+func GetLocation(location string) (Location, error) {
+	if location == "" {
+		return Location{}, fmt.Errorf("No location provided!")
+	}
+	url := apiURL + "location/" + location
+
+	resp, err := response.GetResponse(url)
+	if err != nil {
+		fmt.Println(err)
+		return Location{}, err
+	}
+	data, err := unmarshalLocationArea(resp)
+	if err != nil {
+		fmt.Println(err)
+		return Location{}, err
+	}
+	return data, nil
+}
+func unmarshalLocationArea(data []byte) (Location, error) {
+	var resp Location
+	if err := json.Unmarshal(data, &resp); err != nil {
+		fmt.Println(err)
+		return Location{}, err
+	}
+	return resp, nil
 }

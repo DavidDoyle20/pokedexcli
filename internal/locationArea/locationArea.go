@@ -3,13 +3,13 @@ package locationarea
 import (
 	"encoding/json"
 	"fmt"
-	"internal/location"
-	"internal/pokecache"
-	"time"
+	"internal/response"
 )
 
 var locationAreaUrl = "https://pokeapi.co/api/v2/location-area/"
-var cache = pokecache.NewCache(time.Second * 30)
+var currentLocationArea = ""
+
+//var cache = pokecache.NewCache(time.Second * 30)
 
 type LocationArea struct {
 	EncounterMethodRates []struct {
@@ -66,7 +66,7 @@ type LocationArea struct {
 
 func GetLocationArea(area string) (LocationArea, error) {
 	fullUrl := locationAreaUrl + area
-	resp, err := location.GetResponse(fullUrl)
+	resp, err := response.GetResponse(fullUrl)
 	if err != nil {
 		fmt.Println(err)
 		return LocationArea{}, err
@@ -78,5 +78,13 @@ func GetLocationArea(area string) (LocationArea, error) {
 		return LocationArea{}, err
 	}
 
+	currentLocationArea = area
 	return locationarea, nil
+}
+
+func GetCurrentLocationArea() (LocationArea, error) {
+	if currentLocationArea == "" {
+		return LocationArea{}, fmt.Errorf("You need to explore an area first")
+	}
+	return GetLocationArea(currentLocationArea)
 }

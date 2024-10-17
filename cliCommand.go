@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"internal/location"
 	"internal/locationArea"
+	"internal/pokedex"
+	"internal/pokemon"
 	"os"
 	"strings"
 )
@@ -86,6 +88,85 @@ func commandNames(la locationarea.LocationArea) error {
 	return nil
 }
 
+func commandCatch(args string) error {
+	args_list := strings.Split(args, " ")
+	pokemonName := args_list[0]
+
+	current, err := locationarea.GetCurrentLocationArea()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	for _, p := range current.PokemonEncounters {
+		if p.Pokemon.Name == pokemonName {
+			poke, err := pokemon.GetPokemon(pokemonName)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+			fmt.Printf("Throwing a pokeball at %s...\n", poke.Name)
+			if pokemon.AttemptCatch(poke) {
+				fmt.Printf("Success! Caught %s\n", poke.Name)
+				pokedex.Add(poke)
+				return nil
+			}
+			fmt.Printf("%s escaped!\n", poke.Name)
+			return nil
+		}
+	}
+	fmt.Println("Cant find that pokemon in this area")
+	return nil
+}
+
+func commandAreas(args string) error {
+	args_list := strings.Split(args, " ")
+	l := args_list[0]
+
+	location, err := location.GetLocation(l)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	fmt.Printf("%s Areas:\n", location.Name)
+	for _, a := range location.Areas {
+		fmt.Printf(" - %s\n", a.Name)
+	}
+
+	return nil
+}
+
+func commandInspect(args string) error {
+	args_list := strings.Split(args, " ")
+	pokemonName := args_list[0]
+
+	poke, err := pokedex.Get(pokemonName)
+	if err != nil {
+		fmt.Println("You have not caught that pokemon")
+		return err
+	}
+	fmt.Printf("Name: %s\n", poke.Name)
+	fmt.Printf("Height: %d\n", poke.Height)
+	fmt.Printf("Weight: %d\n", poke.Weight)
+	fmt.Println("Stats:")
+	for _, s := range poke.Stats {
+		fmt.Printf(" - %s: %d (+%d)\n", s.Stat.Name, s.BaseStat, s.Effort)
+	}
+	fmt.Println("Types:")
+	for _, t := range poke.Types {
+		fmt.Printf(" - %s\n", t.Type.Name)
+	}
+	return nil
+}
+
+func commandPokedex(args string) error {
+	fmt.Println("Your Pokedex:")
+	for _, p := range pokedex.GetPokedex() {
+		fmt.Printf(" - %s\n", p.Name)
+	}
+	return nil
+}
+
 func getCommandMap() map[string]cliCommand {
 	return map[string]cliCommand{
 		"help": {
@@ -148,6 +229,58 @@ func getCommandMap() map[string]cliCommand {
 				"-n": {
 					name:        "names",
 					description: "Lists the names of the pokemon that can be encountered at a location",
+					callback:    commandExit,
+					args:        nil,
+				},
+			},
+		},
+		"catch": {
+			name:        "catch",
+			description: "Attempts to catch a pokemon and then adds its info to the pokedex",
+			callback:    commandCatch,
+			args: map[string]cliCommand{
+				"test": {
+					name:        "test",
+					description: "test",
+					callback:    commandExit,
+					args:        nil,
+				},
+			},
+		},
+		"areas": {
+			name:        "areas",
+			description: "Displays the areas in a specific location",
+			callback:    commandAreas,
+			args: map[string]cliCommand{
+				"test": {
+					name:        "test",
+					description: "test",
+					callback:    commandExit,
+					args:        nil,
+				},
+			},
+		},
+		"inspect": {
+			name:        "inspect",
+			description: "Displays information about pokemon in pokedex",
+			callback:    commandInspect,
+			args: map[string]cliCommand{
+				"test": {
+					name:        "test",
+					description: "test",
+					callback:    commandExit,
+					args:        nil,
+				},
+			},
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Displays all of the pokemon in your pokedex",
+			callback:    commandPokedex,
+			args: map[string]cliCommand{
+				"test": {
+					name:        "test",
+					description: "test",
 					callback:    commandExit,
 					args:        nil,
 				},
