@@ -8,7 +8,8 @@ import (
 )
 
 func main() {
-	fmt.Println("Welcome to the Pokedex!\n")
+	fmt.Println("Welcome to the Pokedex!")
+	fmt.Println()
 
 	// Returns a new scanner that reads from stdin
 	scanner := bufio.NewScanner(os.Stdin)
@@ -27,12 +28,11 @@ func main() {
 			continue
 		}
 
-		cmd, err := getCommand(cleanInput(scanner.Text()))
+		_, err := getCommand(cleanInput(scanner.Text()))
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-		cmd.callback()
 	}
 }
 
